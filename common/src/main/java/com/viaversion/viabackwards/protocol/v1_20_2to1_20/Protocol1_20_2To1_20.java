@@ -110,7 +110,52 @@ public final class Protocol1_20To1_20_2 extends BackwardsProtocol<ClientboundPac
         });
         registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.RESOURCE_PACK.getId(), -1, wrapper -> {
             // Send after join. We have to pretend the client accepted, else the server won't continue...
-@@ -177,8 +181,6 @@ public void transform(final Direction direction, final State state, final Packet
+            wrapper.user().get(ConfigurationPacketStorage.class).setResourcePack(wrapper);
+            wrapper.cancel();
+            final PacketWrapper acceptedResponse = wrapper.create(ServerboundConfigurationPackets1_20_2.RESOURCE_PACK);
+            acceptedResponse.write(Type.VAR_INT, 3);
+            acceptedResponse.sendToServer(Protocol1_20To1_20_2.class);
+            final PacketWrapper downloadedResponse = wrapper.create(ServerboundConfigurationPackets1_20_2.RESOURCE_PACK);
+            downloadedResponse.write(Type.VAR_INT, 0);
+            downloadedResponse.sendToServer(Protocol1_20To1_20_2.class);
+        });
+        registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.REGISTRY_DATA.getId(), -1, wrapper -> {
+            wrapper.cancel();
+            final CompoundTag registry = wrapper.read(Type.COMPOUND_TAG);
+            entityPacketRewriter.trackBiomeSize(wrapper.user(), registry);
+            entityPacketRewriter.cacheDimensionData(wrapper.user(), registry);
+            wrapper.user().get(ConfigurationPacketStorage.class).setRegistry(registry);
+        });
+        registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.UPDATE_ENABLED_FEATURES.getId(), -1, wrapper -> {
+            final String[] enabledFeatures = wrapper.read(Type.STRING_ARRAY);
+            wrapper.user().get(ConfigurationPacketStorage.class).setEnabledFeatures(enabledFeatures);
+            wrapper.cancel();
+        });
+        registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.UPDATE_TAGS.getId(), -1, wrapper -> {
+            wrapper.user().get(ConfigurationPacketStorage.class).addRawPacket(wrapper, ClientboundPackets1_19_4.TAGS);
+            wrapper.cancel();
+        });
+        registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.CUSTOM_PAYLOAD.getId(), -1, wrapper -> {
+            wrapper.user().get(ConfigurationPacketStorage.class).addRawPacket(wrapper, ClientboundPackets1_19_4.PLUGIN_MESSAGE);
+            wrapper.cancel();
+        });
+    }
+    @Override
+    public void transform(final Direction direction, final State state, final PacketWrapper wrapper) throws Exception {
+        final ConfigurationPacketStorage configurationPacketStorage = wrapper.user().get(ConfigurationPacketStorage.class);
+        if (configurationPacketStorage == null || configurationPacketStorage.isFinished()) {
+            super.transform(direction, state, wrapper);
+            return;
+        }
+        if (direction == Direction.CLIENTBOUND) {
+            super.transform(direction, State.CONFIGURATION, wrapper);
+            return;
+        }
+        // Map some of the packets to their configuration counterparts
+        final int id = wrapper.getId();
+        if (id == ServerboundPackets1_19_4.CLIENT_SETTINGS.getId()) {
+            wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.CLIENT_INFORMATION);
+        } else if (id == ServerboundPackets1_19_4.PLUGIN_MESSAGE.getId()) {
             wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.CUSTOM_PAYLOAD);
         } else if (id == ServerboundPackets1_19_4.KEEP_ALIVE.getId()) {
             wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.KEEP_ALIVE);
