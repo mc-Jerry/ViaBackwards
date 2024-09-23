@@ -126,7 +126,11 @@ public final class Protocol1_20_2To1_20 extends BackwardsProtocol<ClientboundPac
             wrapper.setPacketType(ClientboundPackets1_19_4.KEEP_ALIVE);
         });
         registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.PING.getId(), -1, wrapper -> {
-            wrapper.setPacketType(ClientboundPackets1_19_4.PING);
+            wrapper.cancel();
+
+            final PacketWrapper pingResponse = wrapper.create(ServerboundConfigurationPackets1_20_2.PONG);
+            pingResponse.write(Type.INT, wrapper.read(Type.INT));
+            pingResponse.sendToServer(Protocol1_20To1_20_2.class);
         });
         registerClientbound(State.CONFIGURATION, ClientboundConfigurationPackets1_20_2.RESOURCE_PACK.getId(), -1, wrapper -> {
             // Send after join. We have to pretend the client accepted, else the server won't continue...
@@ -190,8 +194,6 @@ public final class Protocol1_20_2To1_20 extends BackwardsProtocol<ClientboundPac
             wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.CUSTOM_PAYLOAD);
         } else if (id == ServerboundPackets1_19_4.KEEP_ALIVE.getId()) {
             wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.KEEP_ALIVE);
-        } else if (id == ServerboundPackets1_19_4.PONG.getId()) {
-            wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.PONG);
         } else if (id == ServerboundPackets1_19_4.RESOURCE_PACK.getId()) {
             wrapper.setPacketType(ServerboundConfigurationPackets1_20_2.RESOURCE_PACK);
         } else {
